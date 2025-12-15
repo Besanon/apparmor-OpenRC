@@ -1,0 +1,73 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2024 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+  abi <abi/4.0>,
+
+  capability kill,
+  capability sys_ptrace,
+  capability dac_override,
+  capability sys_tty_config,
+
+  ptrace (trace),
+
+  signal (send) set=(term, hup),
+
+  @{sbin}/openrc-run                    mr,
+  @{sbin}/start-stop-daemon             ix,
+  @{lib}/rc/sh/openrc-run.sh            ix,
+  @{lib}/rc/bin/checkpath               ix,
+  @{lib}/rc/bin/ebegin                  Px,
+  @{lib}/rc/bin/eend                    Px,
+  @{lib}/rc/bin/eerror{,n}              Px,
+  @{lib}/rc/bin/einfo{,n}               Px,
+  @{lib}/rc/bin/eval_ecolors            Px,
+  @{lib}/rc/bin/ewarn{,n}               Px,
+  @{lib}/rc/bin/ewend                   Px,
+ @{lib}/rc/bin/fstabinfo               Px,
+  @{lib}/rc/bin/mountinfo               Px,
+  @{lib}/rc/bin/service_crashed         Px,
+  @{lib}/rc/bin/service_get_value       Px,
+  @{lib}/rc/bin/service_hotplugged      Px,
+  @{lib}/rc/bin/service_inactive        Px,
+  @{lib}/rc/bin/service_set_value       Px,
+  @{lib}/rc/bin/service_started         Px,
+  @{lib}/rc/bin/service_started_daemon  Px,
+  @{lib}/rc/bin/service_starting        Px,
+  @{lib}/rc/bin/service_stopped         Px,
+  @{lib}/rc/bin/service_stopping        Px,
+  @{lib}/rc/bin/service_wasinactive     Px,
+  @{lib}/rc/bin/shell_var               Px,
+
+  @{lib}/libeinfo.so      mr,
+  @{lib}/libeinfo.so.1    mr,
+  @{lib}/librc.so         mr,
+  @{lib}/librc.so.1       mr,
+
+  /etc/rc.conf                                          r,
+  /etc/profile.env                                      r,
+  /etc/{conf,init}.d/                                   r,
+
+  @{run}/openrc/** rw,
+  @{run}/openrc/{,**/}*                                 k,
+
+  /dev/tty                                              rw,
+  /dev/tty@{int}                                        rw,
+  /dev/console                                          rw,
+  /dev/pts/@{int}                                       rw,
+
+  @{sys}/fs/cgroup/                                     r,
+  @{sys}/fs/cgroup/*/tasks                              w,
+  @{sys}/fs/cgroup/unified/cgroup.procs                 w,
+
+  @{PROC}/                                              r,
+  @{PROC}/cmdline                                       r,
+  @{PROC}/@{pids}/environ                               r,
+  @{PROC}/@{pids}/stat                                  r,
+  @{PROC}/@{pids}/cmdline                               r,
+
+# vim:syntax=apparmor
+
+
