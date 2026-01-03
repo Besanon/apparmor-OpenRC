@@ -1,0 +1,76 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+profile openrc.init.sh @{lib}/openrc/sh/init.sh flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+  
+  capability mknod,
+  
+  /dev/tty						rw,
+  /dev/tty@{int}					rw,
+  /dev/console						rw,
+  /dev/pts/@{int}					rw,
+  
+  @{lib}/rc/sh/init.sh				r,
+  @{bin}/@{shells}                              mr,
+  @{bin}/grep					Cx,	# sys-apps/grep
+  @{bin}/cp					Cx,	# sys-apps/coreutils
+  @{sbin}/openrc					Px,
+  @{bin}/md5sum				Cx,	# sys-apps/coreutils
+  @{lib}/rc@{bin}/checkpath		Px,
+  @{lib}/rc@{bin}/eval_ecolors		Px,
+  @{lib}/rc@{bin}/einfo			Px,
+  @{lib}/rc@{bin}/mountinfo		Px,
+  
+  /etc/rc.conf						r,
+
+  @{run}/openrc/softlevel					w,
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile cp @{bin}/cp flags=(complain) {
+    include <abstractions/base>
+    
+    capability sys_admin,
+    
+    @{bin}/cp						mr,    
+
+    @{run}/openrc/{,*}					w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile md5sum @{bin}/md5sum flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/md5sum					mr,
+
+    owner @{PROC}/@{pid}/environ			r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/openrc-init-sh>
+}
+
+# vim:syntax=apparmor
