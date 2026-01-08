@@ -1,0 +1,37 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/numlock
+profile numlock-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  signal receive set=hup peer=@{p_systemd},
+
+  @{exec_path} mr,
+
+  @{run}/numlock/numlock.pid r,
+  @{run}/openrc/starting/numlock rw,
+  @{run}/openrc/started/numlock rw,
+  @{run}/openrc/stopping/numlock rw,
+  @{run}/openrc/daemons/numlock/001 r,
+  @{run}/openrc/daemons/numlock/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/numlock/tasks                      w,
+  @{sys}/fs/cgroup/unified/numlock/cgroup.procs              w,
+  @{sys}/fs/cgroup/unified/numlock/cgroup.events             r,
+
+  include if exists <local/numlock-sh>
+}
+
+# vim:syntax=apparmor
