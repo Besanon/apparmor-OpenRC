@@ -1,0 +1,82 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/killprocs
+profile killprocs-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  signal receive,
+
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,
+  @{bin}/rmdir				Cx,	
+  @{bin}/killall rix,
+  
+  /usr/lib/openrc@{bin}/kill_all rix,
+  /etc/{conf,init}.d/killprocs   r,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/started/killprocs rw,
+  @{run}/openrc/stopping/killprocs rw,
+  @{run}/openrc/daemons/killprocs/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/killprocs/tasks		w,
+  @{sys}/fs/cgroup/unified/killprocs/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/killprocs/cgroup.events	r,
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/killprocs/	w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/killprocs/cgroup.procs	r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw, 
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/killprocs/		w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/killprocs-sh>
+}
+
+# vim:syntax=apparmor
