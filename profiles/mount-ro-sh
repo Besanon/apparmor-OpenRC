@@ -1,0 +1,100 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/mount-ro
+profile mount-ro-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{bin}/sync				Px,	
+  @{bin}/sed				Cx,
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,
+  @{bin}/rmdir				Cx,	
+  @{bin}/umount				Px,
+  @{bin}/timeout			Cx,	
+
+  /etc/{conf,init}.d/mount-ro				r,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/started/mount-ro rw,
+  @{run}/openrc/stopping/mount-ro rw,
+  @{run}/openrc/daemons/mount-ro/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/mount-ro/tasks		w,
+  @{sys}/fs/cgroup/unified/mount-ro/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/mount-ro/cgroup.events	r,
+  
+  profile sed @{bin}/sed flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/sed						mr,
+
+    /dev/console					rw,    
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/mount-ro/	w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    #include <abstractions/base>
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    @{sys}/fs/cgroup/unified/mount-ro/cgroup.procs	r,
+    
+    @{bin}/grep						mr,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/mount-ro/		w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile timeout @{bin}/timeout flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/timeout					mr,
+    @{bin}/fuser				Px,	
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+
+  include if exists <local/mount-ro-sh>
+}
+
+# vim:syntax=apparmor
