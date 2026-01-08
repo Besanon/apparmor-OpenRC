@@ -1,0 +1,117 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/devfs
+profile devfs-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability mknod,
+
+  @{shells_path}				Cx,
+
+  @{bin}/mkdir				Cx,	# sys-apps/coreutils
+  @{bin}/grep				Cx,	# sys-apps/grep
+  @{bin}/rmdir				Cx,	# sys-apps/coreutils
+  @{bin}/mount				rPx,	# sys-apps/util-linux
+
+  /etc/{conf,init}.d/devfs				r,
+
+  /etc/ r,
+
+  @{run}/openrc/ r,
+  @{run}/openrc/daemons/udev/ r,
+  @{run}/openrc/daemons/udev/001 r,
+  @{run}/openrc/exclusive/acpid rwk,
+  @{run}/openrc/exclusive/avahi-daemon rwk,
+  @{run}/openrc/exclusive/bootmisc rwk,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/udev rwk,
+  @{run}/openrc/exclusive/unbound rwk,
+  @{run}/openrc/init.d/ r,
+  @{run}/openrc/started/ r,
+  @{run}/openrc/starting/ r,
+  @{run}/openrc/stopping/ r,
+  @{run}/openrc/inactive/ r,
+  @{run}/openrc/wasinactive/ r,
+  @{run}/openrc/hotplugged/ r,
+  @{run}/openrc/failed/ r,
+  @{run}/openrc/scheduled/ r,
+  @{run}/openrc/daemons/ r,
+  @{run}/openrc/stopping/devfs rw,
+  @{run}/openrc/started/devfs rw,
+  @{run}/openrc/depconfig r,
+  @{run}/openrc/deptree r,
+  @{run}/openrc/exclusive/ r,
+  @{run}/openrc/exclusive@{bin}fmt rwk,
+  @{run}/openrc/exclusive/procfs rwk,
+  @{run}/supervise-*.pid r,
+  @{run}/udev.pid r,
+
+  @{sys}/fs/cgroup/openrc/devfs/tasks			w,
+  @{sys}/fs/cgroup/unified/devfs/cgroup.procs		w,
+  @{sys}/fs/cgroup/unified/devfs/cgroup.events	r,
+
+  @{PROC}/cmdline r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/devfs/		w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /dev/mqueue/					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    #include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/devfs/cgroup.procs	r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    #include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/devfs/			w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+
+  include if exists <local/devfs-sh>
+}
+
+# vim:syntax=apparmor
