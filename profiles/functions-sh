@@ -1,0 +1,39 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} =  @{lib}/openrc/sh/functions.sh 
+profile functions @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+  
+  capability mknod,
+
+  @{lib}/openrc/sh/functions.sh		r,
+
+  @{shells_path}					mr,
+  @{bin}/rmdir				Cx,	
+
+  /dev/tty						rw,
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/openrc/**			w,   
+  } 
+
+  include if exists <local/functions-sh>
+}
+
+# vim:syntax=apparmor
+
