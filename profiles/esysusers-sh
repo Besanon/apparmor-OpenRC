@@ -1,0 +1,34 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/esysusers
+profile esysusers-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/esysusers                    r,
+
+  @{bin}/esysusers                    Px,
+
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/exclusive/esysusers rw,
+  @{run}/openrc/stopping/esysusers rw,
+  @{run}/openrc/started/esysusers rw,
+
+  @{sys}/fs/cgroup/openrc/esysusers/tasks          w,
+  @{sys}/fs/cgroup/unified/esysusers/cgroup.procs  w,
+  @{sys}/fs/cgroup/unified/esysusers/cgroup.events r,
+
+  include if exists <local/esysusers-sh>
+}
+
+# vim:syntax=apparmor
