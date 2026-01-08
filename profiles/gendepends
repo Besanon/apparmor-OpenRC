@@ -1,0 +1,90 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+profile gendepends @{lib}/openrc/sh/gendepends.sh flags=(attach_disconnected) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/ncurses>
+  
+  capability dac_override,
+  capability dac_read_search,
+  capability sys_tty_config,
+  
+  @{lib}/openrc/sh/gendepends.sh			r,
+  @{bin}/sed					Cx,
+  @{bin}/grep					Cx,
+  @{sbin}/openrc				Px,
+  @{sbin}/lvm					Px,
+  @{bin}/gawk				Cx,	
+  @{lib}/openrc/bin/shell_var		Px,
+  @{lib}/openrc/bin/service_started	Px,
+  @{lib}/openrc/bin/service_get_value	Px,
+  @{lib}/openrc/bin/fstabinfo		Px,
+  @{lib}/openrc/bin/eval_ecolors	Px,
+  @{sh_path} r,
+
+  /usr/libexec/rc.apparmor.functions			r,	
+  
+  /etc/rc.conf						r,
+  /etc/exports.d/{,*}					r,	
+  /etc/{conf,init}.d/{,*}				r,
+
+  /dev/tty                                              rw,
+  /dev/tty@{int}                                        rw,
+  /dev/console                                          rw,
+  /dev/pts/@{int}                                       rw,
+  
+  deny /apparmor/.null					rw,
+  
+  profile sed @{bin}/sed {
+    include <abstractions/base>
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    
+    @{bin}/sed						mr,
+  }
+  
+  profile grep @{bin}/grep flags=(attach_disconnected) {
+    include <abstractions/base>
+    
+    @{bin}/grep						mr,
+
+    /etc/fstab						r,
+    /etc/{conf,init}.d/{,*}				r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+            
+    deny /apparmor/.null				rw,
+  }
+  
+  profile gawk @{bin}/gawk {
+    include <abstractions/base>
+    
+    capability mknod,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    
+    @{bin}/gawk					mr,
+    
+    /etc/exports				r,
+    /etc/ssh/sshd_config		r,	
+  }
+
+  include if exists <local/gendepends>
+}
+
+# vim:syntax=apparmor
+
