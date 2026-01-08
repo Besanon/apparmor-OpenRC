@@ -1,0 +1,95 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+profile root-sh /etc/init.d/root flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+  
+  @{sys}/fs/cgroup/openrc/root/tasks			w,
+  @{sys}/fs/cgroup/unified/root/cgroup.procs		w,
+  @{sys}/fs/cgroup/unified/root/cgroup.events		r,
+  
+  @{shells_path}			Cx,
+  @{bin}/rm				Cx,	# sys-apps/coreutils
+  @{bin}/mkdir				Cx,	# sys-apps/coreutils
+  @{bin}/grep				Cx,	# sys-apps/grep
+  @{bin}/rmdir				Cx,	# sys-apps/coreutils
+  @{bin}/mount				Px,	# sys-apps/util-linux
+  
+  /etc/{conf,init}.d/root				r,
+
+  @{run}/openrc/stopping/root rw,
+  @{run}/openrc/started/root rw,
+  @{run}/openrc/exclusive/** rwk,
+  
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile rm @{bin}/rm flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/rm 			mr,
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/root/		w,    
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/root/cgroup.procs	r,    
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/root/			w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/root-sh>
+}
+
+# vim:syntax=apparmor
+
+
+
