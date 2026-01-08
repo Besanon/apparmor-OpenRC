@@ -1,0 +1,106 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/udev
+profile udev-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability sys_admin,
+
+  @{shells_path}				Cx,
+  @{bin}/mkdir					Cx,	
+  @{bin}/grep					Cx,	
+  @{bin}/rmdir					Cx,	
+  @{bin}/udevadm				Px,
+  @{sbin}/udevd					Px,	
+  
+  /etc/init.d/netmount Px,
+
+  @{bin}/openrc-run r,
+  @{bin}/udevadm Px,
+
+  /etc/fstab						r,
+  /etc/{conf,init}.d/udev				r,
+
+  @{run}/openrc/daemons/avahi-daemon/001 r,
+  @{run}/openrc/daemons/cupsd/001 r,
+  @{run}/openrc/daemons/elogind/001 r,
+  @{run}/openrc/daemons/dbus/001 r,
+  @{run}/udev/udev.pid r,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/unbound rwk,
+  @{run}/openrc/inactive/udev rw,
+  @{run}/openrc/starting/udev rw,
+  @{run}/openrc/started/udev rw,
+  @{run}/openrc/stopping/udev rw,
+  @{run}/openrc/wasinactive/udev rw,
+  @{run}/openrc/daemons/udev/001 r,
+  @{run}/supervise-*.pid r,
+ 
+  /sys/fs/cgroup/openrc/udev/tasks                      w,
+  /sys/fs/cgroup/unified/udev/cgroup.procs              w,
+  /sys/fs/cgroup/unified/udev/cgroup.events             r,
+
+  @{PROC}/sys/kernel/hotplug				w,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+    
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/udev/		w,    
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+    /dev/pts/						w,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/udev/cgroup.procs	r,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/udev/			w,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+ 
+  include if exists <local/udev-sh>
+}
+
+# vim:syntax=apparmor
