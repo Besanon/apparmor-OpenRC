@@ -1,0 +1,78 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/procfs
+profile procfs-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{bin}/@{shells} mr,
+  @{bin}/mkdir					Cx,	
+  @{bin}/grep					Cx,	# sys-apps/grep
+  @{bin}/rmdir					Cx,	
+ 
+  /etc/{conf,init}.d/procfs				r,
+
+  @{run}/openrc/exclusive/procfs rw,
+  @{run}/openrc/starting/procfs rw,
+  @{run}/openrc/started/procfs rw,
+  @{run}/openrc/stopping/procfs rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/daemons/procfs/001 r,
+
+  @{sys}/fs/cgroup/openrc/procfs/tasks		w,
+  @{sys}/fs/cgroup/unified/procfs/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/procfs/cgroup.events	r,
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/procfs/		w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+    
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/procfs/cgroup.procs	r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/procfs/			w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  include if exists <local/procfs-sh>
+}
+
+# vim:syntax=apparmor
