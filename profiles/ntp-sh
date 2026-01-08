@@ -1,0 +1,57 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/ntp
+profile ntp-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/wutmp>
+
+  signal receive set=hup peer=@{p_systemd},
+
+  @{exec_path} mr,
+
+  /etc/ r,
+  /etc/conf.d/ r,
+  /etc/conf.d/* r,
+  /etc/rc.conf r,
+  /etc/init.d/ r,
+
+  /usr/local/etc/ r,
+
+  @{run}/openrc/ r,
+  @{run}/openrc/daemons/udev/ r,
+  @{run}/openrc/daemons/udev/001 r,
+  @{run}/openrc/exclusive/bootmisc rwk,
+  @{run}/openrc/exclusive/udev rwk,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/init.d/ r,
+  @{run}/openrc/started/ r,
+  @{run}/openrc/starting/ r,
+  @{run}/openrc/stopping/ r,
+  @{run}/openrc/inactive/ r,
+  @{run}/openrc/wasinactive/ r,
+  @{run}/openrc/hotplugged/ r,
+  @{run}/openrc/failed/ r,
+  @{run}/openrc/scheduled/ r,
+  @{run}/openrc/daemons/ r,
+  @{run}/openrc/stopping/net rw,
+  @{run}/openrc/started/net rw,
+  @{run}/openrc/depconfig r,
+  @{run}/openrc/deptree r,
+  @{run}/openrc/exclusive/ r,
+  @{run}/udev.pid r,
+
+  @{PROC}/cmdline r,
+ 
+  include if exists <local/netp-sh>
+}
+
+# vim:syntax=apparmor
