@@ -1,0 +1,53 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/NetworkManager
+profile NetworkManager-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  signal receive set=hup peer=@{p_systemd},
+  signal receive set=usr1 peer=mark_service,
+
+  ptrace read peer=unconfined,
+
+  /etc/init.d/netmount Px,
+
+  @{bin}/openrc-run r,
+  @{bin}/NetworkManager rPx,
+
+  /etc/{conf,init}.d/NetworkManager   r,
+
+  @{run}/openrc/daemons/avahi-daemon/001 r,
+  @{run}/openrc/daemons/cupsd/001 r,
+  @{run}/openrc/daemons/elogind/001 r,
+  @{run}/openrc/daemons/dbus/001 r,
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/unbound rwk,
+  @{run}/openrc/inactive/NetworkManager rw,
+  @{run}/openrc/starting/NetworkManager rw,
+  @{run}/openrc/started/NetworkManager rw,
+  @{run}/openrc/stopping/NetworkManager rw,
+  @{run}/openrc/wasinactive/NetworkManager rw,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+  @{run}/unbound.pid r,
+ 
+  @{sys}/fs/cgroup/openrc/NetworkManager/tasks                      w,
+  @{sys}/fs/cgroup/unified/NetworkManager/cgroup.procs              w,
+  @{sys}/fs/cgroup/unified/NetworkManager/cgroup.events             r,
+
+  include if exists <local/NetworkManager-sh>
+}
+
+# vim:syntax=apparmor
