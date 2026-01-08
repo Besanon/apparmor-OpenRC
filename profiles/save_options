@@ -1,0 +1,81 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{lib}/openrc/bin/save_options 
+profile save_options @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+
+  capability kill,
+  capability perfmon,
+  capability sys_admin,
+
+  signal receive set=usr1 peer=mark_service_inactive,
+
+  ptrace read peer=unconfined,
+
+  @{exec_path} mr,
+
+  /usr/local/etc/ r,
+
+  /etc/ r,
+  /etc/conf.d/ r,
+  /etc/rc.conf r,
+  /etc/init.d/ r,
+  /etc/init.d/* Px, 
+
+  /etc/init.d/NetworkManager-sh mr,  
+
+  @{lib}/openrc/sh/openrc-run.sh rPx -> openrc-run-sh,
+
+  @{run}/agetty.tty@{int}.pid r,
+  @{run}/openrc/  r,
+  @{run}/openrc/daemons/ r,
+  @{run}/openrc/daemons/**/ r,
+  @{run}/openrc/daemons/**/* rwk,
+  @{run}/openrc/depconfig r,
+  @{run}/openrc/deptree r,
+  @{run}/openrc/init.d/ r,
+  @{run}/openrc/exclusive/ r,
+  @{run}/openrc/exclusive/* rwk,
+  @{run}/openrc/krunlevel r,
+  @{run}/openrc/options/ r,
+  @{run}/openrc/scheduled/ r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/started/  r,
+  @{run}/openrc/started/*  rwk,
+  @{run}/openrc/inactive/  r,
+  @{run}/openrc/inactive/*  rwk,
+  @{run}/openrc/starting/  r,
+  @{run}/openrc/starting/*  rwk,
+  @{run}/openrc/stopping/  r,
+  @{run}/openrc/stopping/*  rwk,
+  @{run}/openrc/softlevel r,
+  @{run}/openrc/wasinactive/  r,
+  @{run}/openrc/wasinactive/*  rwk,
+  @{run}/openrc/hotplugged/  r,
+  @{run}/openrc/hotplugged/*  rwk,
+  @{run}/openrc/failed/  r,
+  @{run}/openrc/scheduled/  r,
+  @{run}/openrc/scheduled/**/  r,
+  @{run}/openrc/scheduled/**/*  rwk,
+  @{run}/supervise-*.pid rwk,
+  @{run}/udev.pid r,
+  @{run}/unbound.pid r,
+  @{run}/NetworkManager/NetworkManager.pid r,
+
+  @{PROC}/cmdline r,
+  @{PROC}/1/environ r,
+  @{PROC}/sys/kernel/osrelease r,
+
+  include if exists <local/save_options>
+}
+
+# vim:syntax=apparmor
