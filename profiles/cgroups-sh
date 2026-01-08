@@ -1,0 +1,81 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/cgroup
+profile cgroup-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability mknod,
+
+  @{shells_path}        Cx,
+  @{bin}/grep 		Cx,
+  @{bin}/mkdir		Cx,
+  @{bin}/mount		rPx,
+  @{bin}/mountinfo	rPx,
+  @{lib}/openrc@{bin}/ebegin  rPx,
+  @{lib}/openrc@{bin}/eend    rPx,
+  @{bin}/rmdir   Cx,
+ 
+  /etc/{conf,init}.d/cgroup   r,
+
+  @{sys}/						w,
+  @{sys}/fs/cgroup/*/				w,
+  @{sys}/fs/cgroup/{openrc,unified}@{sys}fs/		w,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/dmesg/cgroup.procs	r,    
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/dmesg/		w,    
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+
+  profile rmdir @{bin}rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+    
+    @{sys}/fs/cgroup/openrc/**			w,
+    
+  }
+
+  include if exists <local/cgroup-sh>
+}
+
+# vim:syntax=apparmor
