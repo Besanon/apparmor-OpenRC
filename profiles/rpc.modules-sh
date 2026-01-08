@@ -1,0 +1,47 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/rpc.*
+profile rpc.modules-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability kill,
+
+  /etc/init.d/rpc.* r,
+
+  @{bin}/rpc.* rPx,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/daemons/rpc.*/ rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/rpc.* rw,
+  @{run}/openrc/starting/rpc.* rw,
+  @{run}/openrc/started/rpc.* rw,
+  @{run}/openrc/stopping/rpc.* rw,
+  @{run}/openrc/daemons/rpc.*/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/openrc/options/rpc.*/ rw,
+  @{run}/openrc/options/rpc.*/pidfile rw,
+  @{run}/openrc/options/rpc.*/command rw,
+  @{run}/supervise-*.pid r,
+  @{run}/rpc.*.pid r,
+
+  @{sys}/fs/cgroup/openrc/rpc.*/tasks          w,
+  @{sys}/fs/cgroup/unified/rpc.*/cgroup.procs  w,
+  @{sys}/fs/cgroup/unified/rpc.*/cgroup.events r,
+
+  include if exists <local/rpc.modules-sh>
+}
+
+# vim:syntax=apparmor
