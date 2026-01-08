@@ -1,0 +1,86 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/keymaps
+profile keymaps-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,
+  @{bin}/rmdir				Cx,	
+  @{bin}/kbd_mode			Px,	
+  @{bin}/loadkeys			Px,
+  @{bin}/dumpkeys			Px,	
+
+  /etc/{conf,init}.d/keymaps   r,
+  @{lib}/rc/console/keymap			w,
+ 
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/exclusive/keymaps rw,
+  @{run}/openrc/started/keymaps rw,
+  @{run}/openrc/stopping/keymaps rw,
+  @{run}/openrc/daemons/keymaps/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/keymaps/tasks		w,
+  @{sys}/fs/cgroup/unified/keymaps/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/keymaps/cgroup.events	r,
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{lib}/rc/console/				w,
+
+    @{sys}/fs/cgroup/{openrc,unified}/keymaps/	w,
+
+    /dev/tty@{int}                                      rw,
+    /dev/console                                        rw,
+    /dev/pts/@{int}                                     rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>  
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/keymaps/cgroup.procs	r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/keymaps/			w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+
+  include if exists <local/keymaps-sh>
+}
+
+# vim:syntax=apparmor
