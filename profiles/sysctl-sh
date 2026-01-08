@@ -1,0 +1,89 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/sysctl
+profile sysctl-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}			Cx,
+  @{bin}/mkdir				Cx,	# sys-apps/coreutils
+  @{bin}/grep				Cx,	# sys-apps/grep
+  @{bin}/rmdir				Cx,	# sys-apps/coreutils
+  @{lib}/openrc/sh/openrc-run.sh	Px,
+  @{sbin}/sysctl			Px,	# sys-process/procps
+  
+  /etc/{conf,init}.d/sysctl				r,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/exclusive@{sys}ctl rw,
+  @{run}/openrc/started@{sys}ctl rw,
+  @{run}/openrc/stopping@{sys}ctl rw,
+  @{run}/openrc/daemons@{sys}ctl/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc@{sys}ctl/tasks			w,
+  @{sys}/fs/cgroup/unified@{sys}ctl/cgroup.procs		w,
+  @{sys}/fs/cgroup/unified@{sys}ctl/cgroup.events		r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    include <abstractions/openrc-shell>
+  }
+    
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+    
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/sysctl/		w,    
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+    
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/sysctl/cgroup.procs	r,    
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/sysctl/cgroup.procs	r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <loca/sysctl-sh>
+}
+
+# vim:syntax=apparmor
