@@ -1,0 +1,44 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/metalog
+profile metalog-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/metalog   r,
+
+  @{bin}/metalog Px,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/exclusive/acpid rwk,
+  @{run}/openrc/exclusive/cronie rwk,
+  @{run}/openrc/exclusive/metalog rwk,
+  @{run}/openrc/exclusive/unbound rwk,
+  @{run}/openrc/starting/metalog rw,
+  @{run}/openrc/started/metalog rw,
+  @{run}/openrc/stopping/metalog rw,
+  @{run}/openrc/daemons/acpid/001 r,
+  @{run}/openrc/daemons/cronie/001 r,
+  @{run}/openrc/daemons/metalog/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+  @{run}/unbound.pid r,
+
+  @{sys}/fs/cgroup/openrc/metalog/tasks                    w,
+  @{sys}/fs/cgroup/unified/metalog/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/metalog/cgroup.events           r,
+
+  include if exists <local/metalog-sh>
+}
+
+# vim:syntax=apparmor
