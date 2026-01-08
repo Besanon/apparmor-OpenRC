@@ -1,0 +1,70 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/ntpd
+profile ntpd-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/ntpd     r,
+
+  @{bin}/ntpd rPx,
+
+  /etc/conf.d/ r,
+  /etc/conf.d/* r,
+  /etc/rc.conf r,
+  /etc/init.d/ r,
+
+  /usr/local/etc/ r,
+
+  @{run}/openrc/ r,
+  @{run}/openrc/daemons/udev/ r,
+  @{run}/openrc/daemons/udev/001 r,
+  @{run}/openrc/exclusive/ntpd rwk,
+  @{run}/openrc/exclusive/bootmisc rwk,
+  @{run}/openrc/exclusive/udev rwk,
+  @{run}/openrc/exclusive/ntpd rwk,
+  @{run}/openrc/init.d/ r,
+  @{run}/openrc/started/ r,
+  @{run}/openrc/started/ntpd rw,
+  @{run}/openrc/starting/ r,
+  @{run}/openrc/starting/ntpd rw,
+  @{run}/openrc/stopping/ r,
+  @{run}/openrc/inactive/ r,
+  @{run}/openrc/wasinactive/ r,
+  @{run}/openrc/hotplugged/ r,
+  @{run}/openrc/failed/ r,
+  @{run}/openrc/scheduled/ r,
+  @{run}/openrc/daemons/ r,
+  @{run}/openrc/stopping/net rw,
+  @{run}/openrc/started/net rw,
+  @{run}/openrc/depconfig r,
+  @{run}/openrc/deptree r,
+  @{run}/openrc/exclusive/ r,
+  @{run}/supervise-dbus.pid r,
+  @{run}/supervise-elogind.pid r,
+  @{run}/supervise-metalog.pid r,
+  @{run}/supervise-ntpd.pid r,
+  @{run}/supervise-ntpd.user.pid r,
+  @{run}/udev.pid r,
+  @{run}/unbound.pid r,
+
+  @{sys}/fs/cgroup/openrc/ntpd/tasks                      w,
+  @{sys}/fs/cgroup/unified/ntpd/cgroup.procs              w,
+  @{sys}/fs/cgroup/unified/ntpd/cgroup.events             r,
+
+  @{PROC}/cmdline r,
+ 
+  include if exists <local/ntp-sh>
+}
+
+# vim:syntax=apparmor
