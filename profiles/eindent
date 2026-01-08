@@ -1,0 +1,29 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{lib}/openrc/bin/eindent 
+profile eindent @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/ncurses>
+
+  @{exec_path}				mr,
+  
+  /dev/tty@{int}					rw,
+  /dev/console						rw,
+  /dev/pts/@{int}					rw,
+
+  deny /apparmor/.null					rw,	
+  deny /etc/conf.d/dmcrypt				r,	
+
+  include if exists <local/eindent>
+}
+
+# vim:syntax=apparmor
+
