@@ -1,0 +1,74 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/s6-svscan
+profile s6-svscan-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}				Cx,
+  /bin/mkdir				Cx,	
+  /bin/grep				Cx,
+  /bin/rmdir				Cx,	
+  /etc/{conf,init}.d/s6-svscan				r,
+
+  /sys/fs/cgroup/openrc/s6-svscan/tasks		w,
+  /sys/fs/cgroup/unified/s6-svscan/cgroup.procs	w,
+  /sys/fs/cgroup/unified/s6-svscan/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir /bin/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/{openrc,unified}/s6-svscan/	w,
+
+    /bin/mkdir						mr,
+  }
+  
+  profile grep /bin/grep flags=(complain) {
+    include <abstractions/base>
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/unified/s6-svscan/cgroup.procs	r,
+
+    /bin/grep						mr,
+  }
+  
+  profile rmdir /bin/rmdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/unified/s6-svscan/		w,   
+
+    /bin/rmdir						mr,
+  }
+
+  include if exists <local/s6-svscan-sh>
+}
+
+# vim:syntax=apparmor
