@@ -1,0 +1,102 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/termencoding
+profile termencoding-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}				Cx,
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,	
+  @{bin}/rmdir				Cx,	
+  /etc/init.d/keymaps			Px,
+  /etc/init.d/consolefont		Px,
+  /etc/init.d/netmount Px,
+
+  @{bin}/openrc-run r,
+
+  /etc/{conf,init}.d/termencoding   r,
+
+  @{lib}/rc/console/unicode			w,
+ 
+  @{run}/openrc/daemons/avahi-daemon/001 r,
+  @{run}/openrc/daemons/cupsd/001 r,
+  @{run}/openrc/daemons/elogind/001 r,
+  @{run}/openrc/daemons/dbus/001 r,
+  @{run}/termencoding/termencoding.pid r,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/unbound rwk,
+  @{run}/openrc/inactive/termencoding rw,
+  @{run}/openrc/starting/termencoding rw,
+  @{run}/openrc/started/termencoding rw,
+  @{run}/openrc/stopping/termencoding rw,
+  @{run}/openrc/wasinactive/termencoding rw,
+  @{run}/openrc/daemons/termencoding/001 r,
+  @{run}/supervise-*.pid r,
+ 
+  @{sys}/fs/cgroup/openrc/termencoding/tasks                      w,
+  @{sys}/fs/cgroup/unified/termencoding/cgroup.procs              w,
+  @{sys}/fs/cgroup/unified/termencoding/cgroup.events             r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{lib}/rc/console/				w,
+
+    @{sys}/fs/cgroup/{openrc,unified}/termencoding/	w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/termencoding/cgroup.procs r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/termencoding/		w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+
+  include if exists <local/termencoding-sh>
+}
+
+# vim:syntax=apparmor
