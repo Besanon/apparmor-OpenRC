@@ -1,0 +1,33 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{lib}/openrc/bin/service_get_value
+profile service_get_value @{exec_path} flags=(attach_disconnected) {
+  include <abstractions/base>
+  
+  /dev/tty@{int}					rw,
+  /dev/console						rw,
+  /dev/pts/@{int}					rw,
+  
+  @{exec_path}			mr,
+  
+  @{run}/openrc/options/**				r,
+  @{run}/openrc/exclusive/pam_openr* rw,
+  owner @{run}/user/@{uid}/openrc/options/dbus/pidfile r,
+  owner @{run}/user/@{uid}/openrc/options/wireplumber/pidfile r,
+  owner @{run}/user/@{uid}/openrc/options/pipewire/pidfile r,
+  owner @{run}/user/@{uid}/openrc/options/pipewire-pulse/pidfile r,
+
+  deny /apparmor/.null					rw,	
+
+  include if exists <local/service_get_value>
+}
+
+# vim:syntax=apparmor
