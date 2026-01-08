@@ -1,0 +1,34 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{lib}/openrc/bin/eend
+profile eend @{exec_path} flags=(attach_disconnected) {
+  include <abstractions/base>
+  include <abstractions/ncurses>
+
+  capability sys_tty_config,
+  capability mknod,
+
+  @{exec_path}				mr,
+
+  @{run}/openrc/exclusive/pam_openr* rw,
+  
+  /dev/tty						rw,
+  /dev/tty@{int}					rw,
+  /dev/console						rw,
+  /dev/pts/@{int}					rw,
+
+  deny /etc/conf.d/dmcrypt				r,	
+
+  include if exists <local/eend>
+}
+
+# vim:syntax=apparmor
+
