@@ -1,0 +1,89 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/etmpfiles-setup
+profile etmpfiles-setup-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}				Cx,
+  @{bin}/etmpfiles			Px,	
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,	
+  @{bin}/rmdir				Cx,	
+  /etc/{conf,init}.d/etmpfiles-setup			r,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/starting/etmpfiles-setup rw,
+  @{run}/openrc/started/etmpfiles-setup rw,
+  @{run}/openrc/stopping/etmpfiles-setup rw,
+  @{run}/openrc/daemons/etmpfiles-setup/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/exclusive/sddm rwk,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/etmpfiles-setup/tasks                    w,
+  @{sys}/fs/cgroup/unified/etmpfiles-setup/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/etmpfiles-setup/cgroup.events           r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/opentmpfiles-setup/ w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/opentmpfiles-setup/cgroup.procs r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/opentmpfiles-setup/	w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/etmpfiles-setup-sh>
+}
+
+# vim:syntax=apparmor
