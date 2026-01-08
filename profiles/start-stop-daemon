@@ -1,0 +1,60 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{bin}/start-stop-daemon  @{lib}/openrc/sh/start-stop-daemon
+profile start-stop-daemon @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+
+  capability kill,
+  capability sys_ptrace,
+
+  signal send set=term peer=unconfined,
+  signal send set=term peer=NetworkManager,
+
+  ptrace read,
+
+  @{exec_path} mr,
+
+  @{bin}/auditd rPx,
+  @{bin}/NetworkManager rPx,
+
+  /etc/ r,
+  /etc/rc.conf r,
+
+  @{PROC}/ r,
+  @{PROC}/cmdline r,
+  @{PROC}/@{pid}/stat r,
+
+  @{run}/openrc/  r,
+  @{run}/openrc/daemons/ r,
+  @{run}/openrc/daemons/**/ rw,
+  @{run}/openrc/daemons/auditd/001 rw,
+  @{run}/openrc/daemons/NetworkManager/001 rw,
+  @{run}/openrc/daemons/unbound/001 rw,
+  @{run}/openrc/started/  r,
+  @{run}/openrc/inactive/  r,
+  @{run}/openrc/starting/  r,
+  @{run}/openrc/stopping/  r,
+  @{run}/openrc/wasinactive/  r,
+  @{run}/openrc/hotplugged/  r,
+  @{run}/openrc/failed/  r,
+  @{run}/openrc/scheduled/  r,
+  @{run}/openrc/stopping/acpid rw,
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/unbound.pid rw,
+
+  /dev/pts/@{int} rw,
+  /dev/tty rw,
+
+  include if exists <local/start-stop-daemon>
+}
+
+# vim:syntax=apparmor
