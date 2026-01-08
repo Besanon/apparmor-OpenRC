@@ -1,0 +1,126 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/agetty
+profile agetty-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability kill,
+
+  @{shells_path}			Cx,
+  @{bin}/mkdir				Cx,	# sys-apps/coreutils
+  @{bin}/grep				Cx,	# sys-apps/grep
+  @{bin}/rmdir				Cx,	# sys-apps/coreutils
+  /sbin/supervise-daemon		Cx,
+
+  /etc/init.d/agetty					r,
+  /etc/conf.d/agetty{,.*}				r,
+
+  @{run}/agetty.tty@{int}.pid r,
+  @{run}/openrc/daemons/**/001 r,
+  @{run}/openrc/exclusive/acpid rwk,
+  @{run}/openrc/exclusive/agetty.tty@{int} rw,
+  @{run}/openrc/exclusive/agetty rw,
+  @{run}/openrc/exclusive/avahi-daemon rwk,
+  @{run}/openrc/exclusive/cupsd rwk,
+  @{run}/openrc/exclusive/cronie rwk,
+  @{run}/openrc/exclusive/metalog rwk,
+  @{run}/openrc/exclusive/netmount r,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/exclusive/sddm rwk,
+  @{run}/openrc/exclusive/local rwk,
+  @{run}/openrc/started/agetty.tty@{int} rw,
+  @{run}/openrc/started/agetty rw,
+  @{run}/openrc/starting/agetty.tty@{int} rw,
+  @{run}/openrc/starting/agetty rw,
+  @{run}/openrc/stopping/agetty.tty@{int} rw, 
+  @{run}/openrc/stopping/agetty rw, 
+  @{run}/supervise-*.pid r,
+  @{run}/unbound.pid r,
+
+  @{sys}/fs/cgroup/openrc/agetty/tasks          w,
+  @{sys}/fs/cgroup/unified/agetty/cgroup.procs  w,
+  @{sys}/fs/cgroup/unified/agetty/cgroup.events r,
+  @{sys}/fs/cgroup/openrc/agetty.*/tasks		w,
+  @{sys}/fs/cgroup/unified/agetty.*/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/agetty.*/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    #include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    @{sys}/fs/cgroup/{openrc,unified}/agetty.*/	w,
+    
+    @{bin}/mkdir						mr,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    #include <abstractions/base>
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    @{sys}/fs/cgroup/unified/agetty.*/cgroup.procs	r,
+    
+    @{bin}/grep						mr,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    #include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    @{sys}/fs/cgroup/unified/agetty.*/		w,
+    
+    @{bin}/rmdir						mr,
+  }
+  
+  profile supervise-daemon /sbin/supervise-daemon flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    
+    signal (send) set=(term) peer="util-linux.agetty",
+    
+    /dev/tty						rw,
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  
+    @{sbin}/supervise-daemon				mr,
+    @{sbin}/agetty			Px,	# sys-apps/util-linux
+  
+    @{run}/agetty.*.pid					rw,
+    @{run}/openrc/daemons/agetty.*/{,**}			rw,
+    @{run}/openrc/options/agetty.*/{,**}			rw,
+    @{run}/openrc/scheduled/				r,
+    @{run}/openrc/stopping/agetty.*			w,
+    @{run}/openrc/exclusive/agetty.*			w,
+  }
+
+  include if exists <local/agetty-sh>
+}
+
+# vim:syntax=apparmor
