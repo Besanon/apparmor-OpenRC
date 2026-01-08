@@ -1,0 +1,34 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/net-online
+profile net-online-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/net-online   r,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/started/net-online rw,
+  @{run}/openrc/stopping/net-online rw,
+  @{run}/openrc/daemons/net-online/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/net-online/tasks                    w,
+  @{sys}/fs/cgroup/unified/net-online/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/net-online/cgroup.events           r,
+
+  include if exists <local/net-online-sh>
+}
+
+# vim:syntax=apparmor
