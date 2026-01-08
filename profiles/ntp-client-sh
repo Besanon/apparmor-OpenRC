@@ -1,0 +1,36 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/ntp-client
+profile ntp-client-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  signal receive set=hup peer=@{p_systemd},
+
+  @{exec_path} r,
+
+  @{run}/ntp-client/ntp-client.pid r,
+  @{run}/openrc/started/ntp-client rw,
+  @{run}/openrc/stopping/ntp-client rw,
+  @{run}/openrc/daemons/ntp-client/001 r,
+  @{run}/openrc/daemons/ntp-client/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/ntp-client/tasks                      w,
+  @{sys}/fs/cgroup/unified/ntp-client/cgroup.procs              w,
+  @{sys}/fs/cgroup/unified/ntp-client/cgroup.events             r,
+
+  include if exists <local/ntp-client-sh>
+}
+
+# vim:syntax=apparmor
