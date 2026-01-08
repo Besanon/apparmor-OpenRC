@@ -1,0 +1,175 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/bootmisc
+profile bootmisc-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}			Cx,
+  @{bin}/rm				Cx,	
+  @{bin}/readlink			Cx,	
+  @{bin}/mktemp				Cx,	
+  @{bin}/chgrp				Cx,	
+  @{bin}/chmod				Cx,	
+  @{bin}/dmesg				Px,	
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,	
+  @{bin}/rmdir				Cx,	
+  @{bin}/mount				Px,	
+  @{bin}/umount				Px,	
+  @{sbin}/halt				Px,	
+  @{sbin}/openrc-shutdown		Px,
+
+  /etc/ r,
+
+  @{run}/openrc/exclusive/bootmisc rw,
+  @{run}/openrc/started/bootmisc rw,
+  @{run}/openrc/stopping/bootmisc rw,
+  @{run}/openrc/failed/bootmisc rw,
+  @{run}/openrc/scheduled/ r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/utmp						w,
+
+  /var/log/dmesg					w,
+  /var/log/wtmp						w,
+  
+  owner /tmp/tmp.*@{run}/				r,
+
+  @{sys}/fs/cgroup/openrc/bootmisc/tasks		w,
+  @{sys}/fs/cgroup/unified/bootmisc/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/bootmisc/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile rm @{bin}/rm flags=(complain) {
+    include <abstractions/base>
+    
+    @{bin}/rm						mr,
+
+    /lib{,32,64}/rc/console/{font,keymap,unicode}	w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile readlink @{bin}/readlink flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/readlink					mr,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile mktemp @{bin}/mktemp flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/mktemp						mr,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+        
+    owner /tmp/tmp.*/				w,
+  }
+  
+  profile chgrp @{bin}/chgrp flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    
+    capability chown,
+
+    @{bin}/chgrp						mr,
+
+    @{run}/utmp						w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile chmod @{bin}/chmod flags=(complain) {
+    include <abstractions/base>
+    
+    capability fsetid,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    
+    @{bin}/chmod						mr,
+    
+    /var/log/dmesg					w,
+
+    @{run}/utmp						w,
+    
+    owner /tmp/.ICE-unix/				w,
+    owner /tmp/.X11-unix/				w,
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability sys_admin,
+    capability dac_override,
+
+    @{bin}/mkdir					mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/bootmisc/	w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+        
+    owner /tmp/.ICE-unix/				w,
+    owner /tmp/.X11-unix/				w,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/bootmisc/cgroup.procs	r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/bootmisc/		w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    
+    owner /tmp/tmp.*/				w,
+  }
+ 
+  include if exists <local/bootmisc-sh>
+}
+
+# vim:syntax=apparmor
