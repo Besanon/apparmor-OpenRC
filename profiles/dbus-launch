@@ -1,0 +1,41 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2024 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{bin}/dbus-launch
+profile dbus-launch @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/bus-session>
+  include <abstractions/bus-accessibility>
+  include <abstractions/consoles>
+  include <abstractions/deny-sensitive-home>
+  include <abstractions/nameservice-strict>
+
+  network unix stream,
+
+  unix type=stream peer=(label=unconfined),
+
+  signal send set=term peer=dbus-daemon,
+
+  @{exec_path} mrix,
+
+  @{bin}/dbus-daemon rPx,
+
+  owner /var/lib/sddm/.dbus/session-bus/@{hex32}-0 rw,
+
+  owner @{HOME}/.dbus/session-bus/@{hex32}-0 rw,
+  owner @{user_share_dirs}/sddm/xorg-session.log w,
+
+  owner /tmp/xauth_@{rand6} rw,
+
+  deny @{bin}/ModemManager x,
+  
+  include if exists <local/dbus-launch>
+}
+
+# vim:syntax=apparmor
