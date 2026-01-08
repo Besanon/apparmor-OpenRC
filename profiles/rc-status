@@ -1,0 +1,61 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{bin}/rc-status 
+profile rc-status @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/ncurses>
+  
+  capability kill,
+  capability perfmon,
+  capability sys_admin,
+  capability sys_ptrace,
+  capability dac_read_search,
+  capability dac_override,
+  
+  ptrace (trace),
+  
+  @{exec_path}					mr,
+
+  @{shells_path} 					Cx,
+  
+  /usr/local/etc/ r,
+
+  /etc/ r,
+  /etc/{conf,init}.d/					r,
+  /etc/rc.conf						r,
+  /etc/runlevels/{,**}					r,
+
+  @{run}/openrc/ r,
+  @{run}/openrc/**					r,
+  @{run}/openrc/depconfig					w,
+  @{run}/openrc/deptree					w,
+  @{run}/{*.,*/,*/*.}pid					r,
+
+  @{PROC}/                                              r,
+  @{PROC}/1/environ 					r,
+  @{PROC}/cmdline                                       r,
+  @{PROC}/@{pids}/cmdline                               r,
+  @{PROC}/sys/kernel/osrelease 				r,
+  audit @{PROC}/@{pid}/environ                  r,      
+  
+  /dev/tty@{int}                                        rw,
+  /dev/pts/@{int}                                       rw,
+
+  profile @{shells_path} {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    include <abstractions/openrc-shell>
+  }
+
+  include if exists <local/rc-status>
+}
+
+# vim:syntax=apparmor
