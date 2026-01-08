@@ -1,0 +1,74 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/bluetoothd
+profile bluetoothd-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}				Cx,
+  @{bin}/mkdir				Cx,	# sys-apps/coreutils
+  @{bin}/grep				Cx,	# sys-apps/grep
+  @{bin}/rmdir				Cx,	# sys-apps/coreutils
+
+  /etc/{conf,init}.d/bluetoothd				r,
+
+  @{sys}/fs/cgroup/openrc/bluetoothd/tasks		w,
+  @{sys}/fs/cgroup/unified/bluetoothd/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/bluetoothd/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    @{sys}/fs/cgroup/{openrc,unified}/bluetoothd/	w,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    @{sys}/fs/cgroup/unified/bluetoothd/cgroup.procs	r,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    @{sys}/fs/cgroup/unified/bluetoothd/		w,   
+  }
+
+  include if exists <local/bluetoothd-sh>
+}
+
+# vim:syntax=apparmor
