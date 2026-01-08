@@ -1,0 +1,98 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+profile etmpfiles @{bin}/etmpfiles {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+  
+  capability chown,
+  capability fowner,
+  capability fsetid,
+  
+  /dev/tty						rw,
+  /dev/tty[0-9]*					rw,
+  /dev/console						rw,
+  /dev/pts/[0-9]*					rw,
+  
+  @{bin}/etmpfiles						r,
+  @{shells_path}				mr,
+  @{bin}/sort					Cx,	
+  @{bin}/mkdir					Cx,	
+  @{bin}/chmod					Cx,	
+  @{bin}/chown					Cx,	
+  @{bin}/chgrp					Cx,	
+  
+  @{run}/etmpfiles.d/{,*}					r,
+  
+  profile sort @{bin}/sort {
+    include <abstractions/base>
+
+    @{bin}/sort						mr,
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+  
+  profile mkdir @{bin}/mkdir {
+    include <abstractions/base>
+
+    @{bin}/mkdir						mr,
+
+    @{run}/**/						w,
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,        
+  }
+  
+  profile chmod @{bin}/chmod {
+    include <abstractions/base>
+    
+    @{bin}/chmod						mr,    
+
+    @{run}/**/						w,
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+  }
+  
+  profile chown @{bin}/chown {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+
+    @{bin}/chown						mr,
+
+    @{run}/**/						w,
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+  
+  profile chgrp @{bin}/chgrp {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+
+    @{bin}/chgrp						mr,    
+
+    @{run}/**/						w,
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+  }
+
+  include if exists <local/etmpfiles>
+}
+
+# vim:syntax=apparmor
+
