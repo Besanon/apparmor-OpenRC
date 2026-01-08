@@ -1,0 +1,38 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+profile openrc.init-early.sh /usr/lib/openrc/sh/init-early.sh flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+  
+  /dev/tty						rw,
+  /dev/tty@{int}					rw,
+  /dev/pts/@{int}					rw,
+  /dev/null						w,
+  /dev/console						rw,
+  
+  /usr/lib/openrc/sh/init-early.sh			r,
+  @{shells_path}					mr,
+
+  @{bin}/setfont				Px,	
+  @{bin}/loadkeys				Px,	
+  @{bin}/kbd_mode				Px,	
+
+  @{sys}/fs/cgroup/openrc/init-early/tasks           w,
+  @{sys}/fs/cgroup/unified/init-early/cgroup.procs   w,
+  @{sys}/fs/cgroup/unified/init-early/cgroup.events  r,
+
+  include if exists <local/init-early-sh>
+}
+
+# vim:syntax=apparmor
+
