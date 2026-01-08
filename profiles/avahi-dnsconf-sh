@@ -1,0 +1,35 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/avahi-dnsconfd
+profile avahi-dnsconfd-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}       Cx,
+
+  @{bin}/avahi-dnsconfd rPx,
+  /etc/{conf,init}.d/avahi-dnsconfd   r,
+
+  @{sys}/fs/cgroup/openrc/avahi-dnsconfd/tasks                    w,
+  @{sys}/fs/cgroup/unified/avahi-dnsconfd/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/avahi-dnsconfd/cgroup.events           r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+
+  include if exists <local/avahi-dnsconfd-sh>
+}
+
+# vim:syntax=apparmor
