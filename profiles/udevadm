@@ -1,0 +1,51 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{bin}/udevadm
+profile udevadm @{exec_path} flags=(attach_disconnected) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/consoles>
+  
+  capability net_admin,
+  capability sys_admin,
+  
+  network netlink raw,
+
+  ptrace (read),
+
+  @{bin}/udevadm						mr,
+  
+  /etc/udev/udev.conf					r,
+
+  @{sys}/bus/						r,
+  @{sys}/class/					r,
+  @{sys}/module/					r,
+  @{sys}/class/*/					rw,
+  @{sys}/bus/**/{,uevent}				rw,
+  @{sys}/module/*/uevent				rw,
+  @{sys}/devices/**/uevent				rw,
+  @{sys}/module/block/parameters/events_dfl_poll_msecs rw,
+  @{run}/udev/control					rw,
+  @{run}/udev/tags/{,**}					w,
+
+  @{PROC}/@{pid}/cgroup r,
+  @{PROC}/1/cgroup r,
+
+  /dev/tty[0-9]*                                        rw,
+  /dev/console                                          rw,
+  /dev/pts/[0-9]*                                       rw,
+  /dev/input/event[0-9]*                                r,
+  /dev/snd/**                                           w,
+
+  include if exists <local/udevadm>
+}
+
+# vim:syntax=apparmor
