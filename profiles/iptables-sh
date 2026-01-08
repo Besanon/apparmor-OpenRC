@@ -1,0 +1,34 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/iptables
+profile iptables-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{exec_path} r,
+
+  @{bin}/iptables Px,
+
+  @{run}/openrc/exclusive/iptables rw,
+  @{run}/openrc/started/iptables rw,
+  @{run}/openrc/stopping/iptables rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+
+  @{sys}/fs/cgroup/openrc/iptables/tasks                    w,
+  @{sys}/fs/cgroup/unified/iptables/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/iptables/cgroup.events           r,
+
+  include if exists <local/iptables-sh>
+}
+
+# vim:syntax=apparmor
