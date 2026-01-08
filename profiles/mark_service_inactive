@@ -1,0 +1,43 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{lib}/openrc/sbin/mark_service_inactive
+profile mark_service_inactive @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+
+  signal send set=usr1 peer=unconfined,
+  signal send set=usr1 peer=NetworkManager,
+  signal send set=usr1 peer=NetworkManager-sh,
+  signal send set=usr1 peer=rc-service,
+
+  @{exec_path} mr,
+
+  @{run}/openrc/  r,
+  @{run}/openrc/exclusive/ r,
+  @{run}/openrc/exclusive/* rw,
+  @{run}/openrc/started/  r,
+  @{run}/openrc/inactive/  r,
+  @{run}/openrc/starting/  r,
+  @{run}/openrc/stopping/  r,
+  @{run}/openrc/stopping/NetworkManager rw,
+  @{run}/openrc/wasinactive/  r,
+  @{run}/openrc/hotplugged/  r,
+  @{run}/openrc/failed/  r,
+  @{run}/openrc/scheduled/  r,
+  @{run}/openrc/inactive/* rw,
+  @{run}/openrc/starting/* rw,
+
+  /dev/pts/@{int} rw,
+
+  include if exists <local/mark_service_inactive>
+}
+
+# vim:syntax=apparmor
