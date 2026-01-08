@@ -1,0 +1,220 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/savecache
+profile savecache-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}				Cx,
+  @{bin}/cp				Cx,	
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,
+  @{bin}/rmdir				Cx,	
+  @{bin}/rm				Cx,	
+
+  /etc/{conf,init}.d/savecache				r,
+  @{lib}/rc/cache/*				rw,
+ 
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/exclusive/savecache rwk,
+  @{run}/openrc/started/savecache rw,
+  @{run}/openrc/stopping/savecache rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/daemons/savecache/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/savecache/tasks		w,
+  @{sys}/fs/cgroup/unified/savecache/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/savecache/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile cp @{bin}/cp flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/cp						mr,
+
+    @{lib}/rc/cache/**				w,
+    
+    /run/openrc/**					r,
+
+    /dev/console					rw,
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/savecache/	w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/savecache/cgroup.procs	r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/savecache
+profile savecache-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}				Cx,
+  @{bin}/cp				Cx,	
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,
+  @{bin}/rmdir				Cx,	
+  @{bin}/rm				Cx,	
+
+  /etc/{conf,init}.d/savecache				r,
+  @{lib}/rc/cache/*				rw,
+ 
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/exclusive/savecache rwk,
+  @{run}/openrc/started/savecache rw,
+  @{run}/openrc/stopping/savecache rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/daemons/savecache/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/savecache/tasks		w,
+  @{sys}/fs/cgroup/unified/savecache/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/savecache/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile cp @{bin}/cp flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/cp						mr,
+
+    @{lib}/rc/cache/**				w,
+    
+    /run/openrc/**					r,
+
+    /dev/console					rw,
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/savecache/	w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/savecache/cgroup.procs	r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/savecache/		w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rm @{bin}/rm flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/rm						mr,
+    
+    @{lib}/rc/cache/{,**}				w,
+  }
+
+  include if exists <local/savecache-sh>
+}
+
+# vim:syntax=apparmor
+
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/savecache/		w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rm @{bin}/rm flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/rm						mr,
+    
+    @{lib}/rc/cache/{,**}				w,
+  }
+
+  include if exists <local/savecache-sh>
+}
+
+# vim:syntax=apparmor
