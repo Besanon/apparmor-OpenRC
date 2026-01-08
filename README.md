@@ -1,10 +1,8 @@
 apparmor-OpenRC
 
-This repository tries to expand and adapt the achievements in apparmor policies of Alexandre Pujol, Mikhail Morfikov, Mikhail Kurinnoi and others to the runit init system. Most of the available work in apparmor policing is developed and tested to run under SYSTEMD init systems. Many of the profiles written by these authors can readily be run under linux distributions with NON-SYSTEMD init systems. However, much work is left to be done when we try to confine the services, dbus freedesktop software or a whole desktop.
+This repository tries to expand and adapt the achievements in apparmor policies of Alexandre Pujol, Mikhail Morfikov, Mikhail Kurinnoi and others to the OpenRC init system. Most of the available work in apparmor policing is developed and tested to run under SYSTEMD init systems. Many of the profiles written by these authors can readily be run under linux distributions with NON-SYSTEMD init systems.
 
-This attempt is still in early development. Runit so far can´t get completly confined up to now. Some parts already work and - your are invited to help fulfilling this gab if you wish to get a more secure linux with runit as base.
-
-In this repository only the altered profiles from the great work of Alexandre Pujol alexandre@pujol.io are shown. You will find some new profiles here. Theses profiles were developed using Void Linux and Artix Linux. Runit has different implementations - they are still NOT fully reflected in this work. The profiles need the abstractions and tunables of the apparmor.d repositry from Alexandre Pujol. You will need them to get the profiles running.
+This attempt is still in early development. OpenRC so far can´t get completly confined up to now. Some parts already work and - your are invited to help fulfilling this gab if you wish to get a more secure linux with runit as base.
 
 Use these profiles at your own risk and keep in mind that most of them will need some adaptation in some other environment.
 
