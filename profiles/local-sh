@@ -1,0 +1,88 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/local
+profile local-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability kill,
+
+  @{shells_path}				Cx,
+  /bin/mkdir					Cx,	
+  /bin/grep					Cx,	
+  /bin/rmdir					Cx,	
+  
+  /etc/{conf,init}.d/local				r,
+  /etc/local.d/{,*}					r,
+
+  @{run}/openrc/daemons/**/001 r,
+  @{run}/openrc/exclusive/** rwk,
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/started/local rw,
+  @{run}/openrc/starting/local rw,
+  @{run}/openrc/stopping/local rw,
+  @{run}/supervise-*.pid r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/unbound.pid r,
+
+  /sys/fs/cgroup/openrc/local/tasks			w,
+  /sys/fs/cgroup/unified/local/cgroup.procs		w,
+  /sys/fs/cgroup/unified/local/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir /bin/mkdir flags=(complain) {
+    #include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/{openrc,unified}/local/		w,
+    
+    /bin/mkdir						mr,
+  }
+  
+  profile grep /bin/grep flags=(complain) {
+    include <abstractions/base>
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/unified/local/cgroup.procs	r,
+    
+    /bin/grep						mr,
+  }
+  
+  profile rmdir /bin/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/unified/local/			w,
+    
+    /bin/rmdir						mr,
+  }
+
+  include if exists <local/local-sh>
+}
+
+# vim:syntax=apparmor
