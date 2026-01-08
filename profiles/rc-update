@@ -1,0 +1,33 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{bin}/rc-update 
+profile rc-update @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/ncurses>
+
+  @{exec_path} mr,
+
+  /usr/local/etc/ r,
+
+  /etc/conf.d/ r,
+  /etc/rc.conf r,
+  /etc/init.d/ r,
+  /etc/runlevels/{,**}					rw,
+
+  @{run}/openrc/**					rw,
+
+  /dev/pts/@{int} rw,
+  /dev/tty@{int}					rw,
+
+  include if exists <local/rc-update>
+}
+
+# vim:syntax=apparmor
