@@ -1,0 +1,126 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/sysfs
+profile sysfs-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  signal receive set=hup peer=@{p_systemd},
+
+  @{exec_path} mr,
+
+  @{shells_path} 				mr,
+  @{bin}/mkdir					Cx,	
+  @{bin}/grep					Cx,	
+  @{bin}/rmdir					Cx,	
+  @{bin}/mount					Cx,
+  
+  /etc/{conf,init}.d/sysfs				r,
+
+  @{run}/openrc/daemons/udev/001 r,
+  @{run}/openrc/exclusive/** rwk,
+  @{run}/openrc/starting@{sys}fs rw,
+  @{run}/openrc/started@{sys}fs rw,
+  @{run}/openrc/stopping@{sys}fs rw,
+  @{run}/openrc/daemons@{sys}fs/001 r,
+
+  @{sys}/fs/cgroup/*/{,**}				w,
+  @{sys}/fs/cgroup/unified/cgroup.controllers		r,
+
+  @{PROC}/cgroups					r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    include <abstractions/openrc-shell>
+  }
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/						w,
+    @{sys}/fs/cgroup/*/				w,
+    @{sys}/fs/cgroup/{openrc,unified}/sysfs/		w,
+
+    /dev/tty@{int}                                      rw,
+    /dev/console                                        rw,
+    /dev/pts/@{int}                                     rw,
+        
+    deny @{PROC}/cgroups					r,	
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/sysfs/cgroup.procs	r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/sysfs/			w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile mount @{bin}/mount flags=(complain) {
+    include <abstractions/base>
+    
+    capability sys_admin,
+    capability dac_override,
+    
+    mount fstype=securityfs options=(rw, nosuid, nodev, noexec) securityfs -> @{sys}/kernel/security/,
+    mount fstype=configfs options=(rw, nosuid, nodev, noexec) configfs -> @{sys}/kernel/config/,
+    mount fstype=fusectl options=(rw, nosuid, nodev, noexec) fusectl -> @{sys}/fs/fuse/connections/,
+    mount fstype=tmpfs options=(rw, nosuid, nodev, noexec) cgroup_root -> @{sys}/fs/cgroup/,
+    mount fstype=cgroup options=(rw, nosuid, nodev, noexec) openrc -> @{sys}/fs/cgroup/openrc/,
+    mount fstype=cgroup2 options=(rw, nosuid, nodev, noexec) none -> @{sys}/fs/cgroup/unified/,
+    mount fstype=cgroup options=(rw, nosuid, nodev, noexec) cpuset -> @{sys}/fs/cgroup/cpuset/,
+    mount fstype=cgroup options=(rw, nosuid, nodev, noexec) cpu -> @{sys}/fs/cgroup/cpu/,
+    mount fstype=cgroup options=(rw, nosuid, nodev, noexec) cpuacct -> @{sys}/fs/cgroup/cpuacct/,
+    mount fstype=cgroup options=(rw, nosuid, nodev, noexec) freezer -> @{sys}/fs/cgroup/freezer/,
+    mount fstype=cgroup options=(rw, nosuid, nodev, noexec) net_cls -> @{sys}/fs/cgroup/net_cls/,
+    mount fstype=debugfs options=(rw, nosuid, nodev, noexec) debugfs -> @{sys}/kernel/debug/,
+
+    @{bin}/mount						mr,
+
+    @{run}/mount/						w,
+    @{run}/mount/utab					rw,
+
+    @{PROC}/cgroups					r,
+  
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/sysfs-sh>
+}
+
+# vim:syntax=apparmor
