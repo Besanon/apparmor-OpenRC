@@ -1,0 +1,46 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/avahi-daemon
+profile avahi-daemon-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/avahi-daemon   r,
+
+  @{bin}/avahi-daemon rPx,
+
+  @{run}/openrc/started/avahi-daemon rw,
+  @{run}/openrc/starting/avahi-daemon rw,
+  @{run}/openrc/daemons/cupsd/001 r,
+  @{run}/openrc/daemons/dbus/001 r,
+  @{run}/openrc/daemons/elogind/001 r,
+  @{run}/openrc/daemons/avahi-daemon/001 r,
+  @{run}/openrc/exclusive/avahi-daemon rwk,
+  @{run}/openrc/exclusive/cupsd rwk,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/stopping/avahi-daemon rw,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/fsck/tasks                    w,
+  @{sys}/fs/cgroup/unified/fsck/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/fsck/cgroup.events           r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+
+  include if exists <local/avahi-daemon-sh>
+}
+
+# vim:syntax=apparmor
