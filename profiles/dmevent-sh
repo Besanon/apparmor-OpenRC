@@ -1,0 +1,27 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/dmeventd
+profile dmeventd-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+
+  /etc/{conf,init}.d/dmeventd   r,
+
+  @{sbin}/dmeventd Px,
+
+  @{sys}/fs/cgroup/openrc/dmeventd/tasks                    w,
+  @{sys}/fs/cgroup/unified/dmeventd/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/dmeventd/cgroup.events           r,
+
+  include if exists <local/dmeventd-sh>
+}
+
+# vim:syntax=apparmor
