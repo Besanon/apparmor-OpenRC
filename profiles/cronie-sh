@@ -1,0 +1,48 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/cronie
+profile cronie-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}       Cx,
+  @{bin}/anacron rPx,
+  @{bin}/cron rPx,
+
+  /etc/{conf,init}.d/cronie   r,
+  /etc/ r,
+
+  @{run}/openrc/starting/cronie rw,
+  @{run}/openrc/started/cronie rw,
+  @{run}/openrc/stopping/cronie rw,
+  @{run}/openrc/exclusive/cronie rw,
+  @{run}/openrc/exclusive/metalog rwk,
+  @{run}/openrc/daemons/cronie/001 r,
+  @{run}/openrc/daemons/metalog/001 r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/supervise-metalog.pid r,
+  @{run}/supervise-cronie.pid r,
+
+  @{sys}/fs/cgroup/openrc/cronie/tasks                    w,
+  @{sys}/fs/cgroup/unified/cronie/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/cronie/cgroup.events           r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  include if exists <local/cronie-sh>
+}
+
+# vim:syntax=apparmor
