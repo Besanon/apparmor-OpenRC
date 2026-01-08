@@ -1,0 +1,99 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/sddm
+profile sddm-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability kill,
+
+  @{shells_path}				Cx,
+  @{bin}/uname					Px,	
+  @{bin}/mkdir					Cx,	
+  @{bin}/grep					Cx,
+  @{bin}/rmdir					Cx,	
+  @{sbin}/sddm				Px,	
+  
+  /etc/{conf,init}.d/sddm				r,
+
+  @{run}/openrc/daemons/**/001 r,
+  @{run}/openrc/exclusive/* rwk,
+  @{run}/openrc/exclusive/localmount r,
+  @{run}/openrc/exclusive/save-termencoding r,
+  @{run}/openrc/exclusive/unbound rwk,
+  @{run}/openrc/exclusive/root r,
+  @{run}/openrc/exclusive/fsck r,
+  @{run}/openrc/started/sddm rw,
+  @{run}/openrc/starting/sddm rw,
+  @{run}/openrc/stopping/sddm rw,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/supervise-*.pid r,
+  @{run}/unbound.pid r,
+
+  /dev/							r,
+  @{sys}/fs/cgroup/openrc/sddm/tasks		w,
+  @{sys}/fs/cgroup/unified/sddm/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/sddm/cgroup.events	r,
+
+  profile shell @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/sddm/	w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/sddm/cgroup.procs	r,
+
+    @{PROC}/devices					r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/sddm/			w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/sddm-sh>
+}
+
+# vim:syntax=apparmor
