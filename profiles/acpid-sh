@@ -1,0 +1,87 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/acpid
+profile acpid-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/acpid     r,
+
+  @{shells_path}                                Cx,
+  
+  @{sbin}/acpid				Px,
+  @{bin}/mkdir					Cx,	# sys-apps/coreutils
+  @{bin}/grep					Cx,	# sys-apps/grep
+  @{bin}/rmdir					Cx,	# sys-apps/coreutils
+
+  @{run}/openrc/daemons/acpid/001 r,
+  @{run}/supervise-acpid.pid r,
+  @{run}/openrc/exclusive/acpid rw,
+  @{run}/openrc/exclusive/metalog rwk,
+  @{run}/openrc/starting/acpid rw,
+  @{run}/openrc/stopping/acpid rw,
+  @{run}/openrc/started/acpid rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/daemons/metalog/001 r,
+  @{run}/supervise-metalog.pid r,
+
+  @{sys}/fs/cgroup/openrc/acpid/tasks          w,
+  @{sys}/fs/cgroup/unified/acpid/cgroup.procs  w,
+  @{sys}/fs/cgroup/unified/acpid/cgroup.events r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+    @{sys}/fs/cgroup/{openrc,unified}/acpid/		w,
+    
+    @{bin}/mkdir						mr,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+    @{sys}/fs/cgroup/unified/acpid/cgroup.procs	r,
+    
+    @{bin}/grep						mr,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+    @{sys}/fs/cgroup/unified/acpid/			w,
+    
+    @{bin}/rmdir						mr,
+  }
+  include if exists <local/acipd-sh>
+}
+
+# vim:syntax=apparmor
