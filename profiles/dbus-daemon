@@ -1,0 +1,107 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2024 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{bin}/dbus-daemon
+profile dbus-daemon @{exec_path} {
+  include <abstractions/base>
+  include <abstractions/bus-accessibility>  #N
+  include <abstractions/bus-session>
+  include <abstractions/consoles>
+  include <abstractions/deny-sensitive-home>
+  include <abstractions/dconf-write>
+  include <abstractions/nameservice-strict>
+
+  capability audit_write,
+  capability setgid,
+  capability setuid,
+  capability sys_resource,
+
+  network netlink raw,
+  network unix stream,
+
+  unix (send receive) type=stream addr=none peer=(label=gnome-shell, addr=none),
+  unix type=stream peer=(label=unconfined),
+
+  unix bind type=stream addr=@@{udbus}/bus/dbus-broker-lau/user,
+  unix (send receive) type=seqpacket,
+
+  signal receive set=term peer=dbus-launch,
+  signal receive set=term peer=supervise-daemon,
+  signal (receive) set=(term hup) peer=lxqt-session, 
+  signal send set=kill peer=xdg-desktop-portal,
+  signal send set=kill peer=dbus-accessibility,
+
+  @{exec_path} mr, # mrix
+
+  @{sh_path} rix,
+  @{bin}/false rix,
+
+  @{lib}/dbus-daemon-launch-helper rix,
+  @{lib}/{,at-spi2{,-core}/}at-spi-bus-launcher  rPx -> dbus-accessibility,
+  @{lib}/openrc-settingsd rPx -> openrc-settingsd,
+  @{lib}/xdg-desktop-portal rPx,
+  @{lib}/xdg-desktop-portal-gtk rPx,
+  @{lib}/xdg-desktop-portal-lxqt rPx,
+  @{lib}/xdg-permission-store rPx,
+  @{lib}/xdg-document-portal rPx,
+  @{lib}/gvfsd rPx,
+  @{lib}/gvfs-gphoto2-volume-monitor rPx,
+  @{lib}/gvfs-mtp-volume-monitor rPx,
+  @{lib}/gvfs-udisks2-volume-monitor rPx,
+  @{lib}/kf6/kscreen_backend_launcher rPx,
+  @{lib}/nm-dispatcher rPx,
+  @{lib}/polkit-1/polkitd rPx,
+  @{bin}/wpa_supplicant rPx,
+  @{lib}/rtkit-daemon rPx,
+  @{lib}/upowerd rPx,
+  @{lib}/udisks2/udisksd rPx,
+  @{bin}/ModemManager rPx,
+
+  /usr/share/dbus-1/*.conf rw,
+  /usr/share/dbus-1/session.d/ rw,
+  /usr/share/dbus-1/services/ rw,
+  /usr/share/dbus-1/services/*.service r,
+  /usr/share/dbus-1/system.d/ r,
+  /usr/share/dbus-1/system.d/*.conf r,
+  /usr/share/dbus-1/system-services/ r,
+  /usr/share/dbus-1/system-services/*.service r,
+
+  owner @{user_share_dirs}/sddm/xorg-session.log w,
+  owner @{user_share_dirs}/sddm/wayland-session.log w,
+
+  owner @{run}/user/@{uid}/ r,
+  owner @{run}/user/@{uid}/dbus-1/ rw,
+  owner @{run}/user/@{uid}/dbus-1/services/ rw,
+  @{run}/dbus/system_bus_socket rwk,
+  @{run}/systemd/users/@{uid} r,
+  @{run}/systemd/sessions/@{int}.ref rw,
+  @{run}/systemd/sessions/c@{int}.ref rw,
+  @{run}/systemd/inhibit/@{int}.ref rw,
+  @{run}/user/@{uid}/dbus-1/ rw,
+  
+  @{sys}/kernel/security/apparmor/.access rw,
+  @{sys}/kernel/security/apparmor/features/dbus/mask r,
+  @{sys}/module/apparmor/parameters/enabled r,
+
+  @{PROC}/sys/kernel/cap_last_cap r,
+  @{PROC}/@{pid}/oom_score_adj r,
+  owner @{PROC}/@{pid}/cmdline r,
+  owner @{PROC}/@{pid}/fdinfo/@{int} r,
+  owner @{PROC}/@{pid}/status r,
+
+  /dev/dri/card@{int} rw,
+  /dev/input/event@{int} rw,
+
+  owner /tmp/dbus-* rw,
+  owner /tmp/xauth_@{rand6} rw,
+
+  include if exists <local/dbus-daemon>
+}
+
+# vim:syntax=apparmor
