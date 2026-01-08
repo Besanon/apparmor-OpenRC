@@ -1,0 +1,9 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2017,2018 Mikhail Kurinnoi
+# SPDX-License-Identifier: GPL-2.0-only
+
+/usr/share/terminfo/**					r,
+
+/etc/terminfo/**					r,
+
+# vim:syntax=apparmor
