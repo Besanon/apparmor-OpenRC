@@ -1,0 +1,126 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/localmount
+profile localmount-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}			Cx,
+  /etc/init.d/*			Px,
+
+  @{bin}/sed				Cx,	# sys-apps/sed
+  @{bin}/sync				Px,	# sys-apps/coreutils
+  @{bin}/fuser				Px,	# sys-process/psmisc
+  @{bin}/sleep				Px,	# sys-apps/coreutils
+  @{bin}/mkdir				Cx,	# sys-apps/coreutils
+  @{bin}/grep				Cx,	# sys-apps/grep
+  @{bin}/rmdir				Cx,	# sys-apps/coreutils
+  @{bin}/mount				Px,	# sys-apps/util-linux
+  @{bin}/umount				Px,	# sys-apps/util-linux
+  @{bin}/timeout			Cx,	# sys-apps/coreutils
+  
+  /etc/{conf,init}.d/localmount				r,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/daemons/elogind/001 r,
+  @{run}/openrc/exclusive/acpid rwk,
+  @{run}/openrc/exclusive/avahi-daemon rwk,
+  @{run}/openrc/exclusive/bootmisc rwk,
+  @{run}/openrc/exclusive/dbus rwk,
+  @{run}/openrc/exclusive/elogind rwk,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/exclusive/sddm rwk,
+  @{run}/openrc/exclusive/unbound rwk,
+  @{run}/openrc/started/localmount rw,
+  @{run}/openrc/stopping/localmount rw,
+  @{run}/openrc/daemons/dbus/001 r,
+  @{run}/openrc/daemons/localmount/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/localmount/tasks		w,
+  @{sys}/fs/cgroup/unified/localmount/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/localmount/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice-strict>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile sed @{bin}/sed flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/sed						mr,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/localmount/	w,    
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/localmount/cgroup.procs	r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/localmount/		w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  profile timeout @{bin}/timeout flags=(complain) {
+    include <abstractions/base>
+    
+    @{bin}/timeout					mr,
+    @{bin}/fuser				Px,	
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  include if exists <local/localmount-sh>
+}
+
+# vim:syntax=apparmor
