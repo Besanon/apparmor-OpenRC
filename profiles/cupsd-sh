@@ -1,0 +1,102 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/cupsd
+profile cups-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+	
+  /etc/{conf,init}.d/cupsd     r,
+
+  @{sbin}/cupsd Px,
+  @{shells_path}					Cx,
+  @{bin}/mkdir					Cx,	
+  @{bin}/grep					Cx,	
+  @{bin}/rmdir					Cx,	
+
+  /var/cache/cups/					w,
+
+  @{run}/cups/						w,
+  @{run}/cups/certs/					w,
+  @{run}/cupsd.pid					rw,
+  @{run}/openrc/daemons/avahi-daemon/001 r,
+  @{run}/openrc/daemons/cupsd/001 r,
+  @{run}/openrc/exclusive/cupsd rwk,
+  @{run}/openrc/inactive/cupsd rw,
+  @{run}/openrc/starting/cupsd rw,
+  @{run}/openrc/started/cupsd rw,
+  @{run}/openrc/stopping/cupsd rw,
+  @{run}/openrc/wasinactive/cupsd rw,
+  @{run}/openrc/daemons/cupsd/001 r,
+  @{run}/openrc/daemons/metalog/ r,
+  @{run}/openrc/daemons/metalog/001 r,
+  @{run}/supervise-dbus.pid r,
+  @{run}/supervise-cupsd.pid r,
+  @{run}/supervise-elogind.pid r,
+  @{run}/supervise-metalog.pid r,
+  @{run}/supervise-avahi-daemon.pid r,
+  @{run}/openrc/prefix.lock rwk,
+
+  @{sys}/fs/cgroup/openrc/cupsd/tasks                    w,
+  @{sys}/fs/cgroup/unified/cupsd/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/cupsd/cgroup.events           r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/cupsd/		w,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/cupsd/cgroup.procs	r,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/cupsd/			w,    
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+  }
+
+  include if exists <local/cupsd-sh>
+}
+
+# vim:syntax=apparmor
