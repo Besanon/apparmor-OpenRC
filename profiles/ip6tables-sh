@@ -1,0 +1,29 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/ip6tables
+profile ip6tables-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{exec_path} r,
+
+  @{bin}/ip6tables Px,
+
+  @{sys}/fs/cgroup/openrc/ip6tables/tasks                    w,
+  @{sys}/fs/cgroup/unified/ip6tables/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/ip6tables/cgroup.events           r,
+
+  include if exists <local/ip6tables-sh>
+}
+
+# vim:syntax=apparmor
