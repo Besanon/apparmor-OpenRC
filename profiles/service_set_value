@@ -1,0 +1,30 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{lib}/openrc/bin/service_set_value
+profile service_set_value @{exec_path} flags=(attach_disconnected) {
+  include <abstractions/base>
+
+  @{exec_path}			mr,
+
+  @{run}/openrc/ r,
+  @{run}/openrc/options/ r,
+  @{run}/openrc/options/agetty.tty@{int} rw,
+  @{run}/openrc/options/**				rw,
+  
+  /dev/tty						rw,
+  /dev/tty@{int}					rw,
+  /dev/console						rw,
+  /dev/pts/@{int}					rw,
+
+  include if exists <local/service_set_value>
+}
+
+# vim:syntax=apparmor
