@@ -1,0 +1,103 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/netmount
+profile netmount-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability kill,
+  capability mknod,
+
+  @{exec_path} r,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/daemons/dbus/001 r,
+  @{run}/openrc/daemons/elogind/001 r,
+  @{run}/openrc/daemons/unbound/001 r,
+  @{run}/openrc/daemons/metalog/001 r,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/starting/netmount rw,
+  @{run}/openrc/started/netmount rw,
+  @{run}/openrc/stopping/netmount rw,
+  @{run}/openrc/daemons/netmount/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/scheduled/NetworkManager/netmount rw,
+  @{run}/unbound.pid r,
+  @{run}/supervise-*.pid r,
+
+  @{sys}/fs/cgroup/openrc/netmount/tasks		w,
+  @{sys}/fs/cgroup/unified/netmount/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/netmount/cgroup.events	r,
+
+  @{shells_path}				Cx,
+  /etc/init.d/dnsmasq				Px,
+  @{bin}/mkdir					Cx,	
+  @{bin}/grep					Cx,
+  @{bin}/rmdir					Cx,	
+  @{bin}/mount					rPx,
+  @{bin}/umount					rPx,
+  
+  /etc/{conf,init}.d/netmount				r,
+  
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/netmount/	w,    
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/netmount/cgroup.procs	r,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+    
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/netmount/		w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/netmount-sh>
+}
+
+# vim:syntax=apparmor
