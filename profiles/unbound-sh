@@ -1,0 +1,47 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/unbound
+profile unbound-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability kill,
+
+  /etc/{conf,init}.d/unbound                              r,
+
+  @{bin}/unbound rPx,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/daemons/unbound/ rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/exclusive/netmount rwk,
+  @{run}/openrc/exclusive/unbound rw,
+  @{run}/openrc/starting/unbound rw,
+  @{run}/openrc/started/unbound rw,
+  @{run}/openrc/stopping/unbound rw,
+  @{run}/openrc/daemons/unbound/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/openrc/options/unbound/ rw,
+  @{run}/openrc/options/unbound/pidfile rw,
+  @{run}/openrc/options/unbound/command rw,
+  @{run}/supervise-*.pid r,
+  @{run}/unbound.pid rw,
+
+  @{sys}/fs/cgroup/openrc/unbound/tasks          w,
+  @{sys}/fs/cgroup/unified/unbound/cgroup.procs  w,
+  @{sys}/fs/cgroup/unified/unbound/cgroup.events r,
+
+  include if exists <local/unbound-sh>
+}
+
+# vim:syntax=apparmor
