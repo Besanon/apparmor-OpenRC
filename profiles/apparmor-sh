@@ -1,0 +1,31 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2025 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/apparmor
+profile apparmor-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/apparmor     r,
+
+  @{run}/openrc/exclusive/apparmor rw,
+  @{run}/openrc/stopping/apparmor rw,
+  @{run}/openrc/started/apparmor rw,
+
+  @{sys}/fs/cgroup/openrc/apparmor/tasks          w,
+  @{sys}/fs/cgroup/unified/apparmor/cgroup.procs  w,
+  @{sys}/fs/cgroup/unified/apparmor/cgroup.events r,
+
+  include if exists <local/apparmor-sh>
+}
+
+# vim:syntax=apparmor
