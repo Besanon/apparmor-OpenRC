@@ -1,0 +1,40 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/elogind
+profile elogind-sh @{exec_path} flags=(complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /etc/{conf,init}.d/elogind   r,
+
+  /usr/lib/elogind/elogind Px,
+
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/starting/elogind rw,
+  @{run}/openrc/started/elogind rw,
+  @{run}/openrc/stopping/elogind rw,
+  @{run}/openrc/daemons/elogind/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/openrc/exclusive/NetworkManager rwk,
+  @{run}/openrc/exclusive/sddm rwk,
+  @{run}/supervise-*.pid r,
+  @{run}/unbound.pid r,
+
+  @{sys}/fs/cgroup/openrc/elogind/tasks                    w,
+  @{sys}/fs/cgroup/unified/elogind/cgroup.procs            w,
+  @{sys}/fs/cgroup/unified/elogind/cgroup.events           r,
+
+  include if exists <local/elogind-sh>
+}
+
+# vim:syntax=apparmor
