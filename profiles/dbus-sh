@@ -1,0 +1,111 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/dbus
+profile dbus-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  ptrace read peer=unconfined,
+
+  /etc/init.d/{cupsd,consolekit,xdm,net.*}	Px,
+
+  @{shells_path}				Cx,
+  @{bin}/rm					Cx,	# sys-apps/coreutils
+  @{bin}/mkdir					Cx,	# sys-apps/coreutils
+  @{bin}/grep					Cx,	# sys-apps/grep
+  @{bin}/rmdir					Cx,	# sys-apps/coreutils
+  @{bin}/dbus-uuidgen			Px,
+  @{bin}/dbus-daemon			Px,
+  @{bin}/dbus-send				Px,
+
+  /etc/{conf,init}.d/dbus				r,
+
+  @{run}/dbus.pid						rwk,
+  @{run}/dbus/						w,
+  @{run}/dbus@{sys}tem_bus_socket				rwk,
+  @{run}/openrc/daemons/**/001 r,
+  @{run}/openrc/exclusive/** rwk,
+  @{run}/openrc/prefix.lock rwk,
+  @{run}/openrc/started/dbus rw,
+  @{run}/openrc/stopping/dbus rw,
+  @{run}/supervise-*.pid r,
+  @{run}/NetworkManager/NetworkManager.pid r,
+
+  @{sys}/fs/cgroup/openrc/dbus/tasks			w,
+  @{sys}/fs/cgroup/unified/dbus/cgroup.procs		w,
+  @{sys}/fs/cgroup/unified/dbus/cgroup.events		r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile rm @{bin}/rm flags=(complain) {
+    include <abstractions/base>
+    
+    capability sys_tty_config,
+
+    @{bin}/rm						mr,
+
+    @{run}/dbus@{sys}tem_bus_socket				w,
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,        
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/dbus/		w,
+
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/dbus/cgroup.procs	r,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,    
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/dbus/			w,
+    
+    /dev/tty[0-9]*					rw,
+    /dev/console					rw,
+    /dev/pts/[0-9]*					rw,
+  }
+
+  include if exists <local/dbus-sh>
+}
+
+# vim:syntax=apparmor
