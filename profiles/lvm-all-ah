@@ -1,0 +1,77 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/lvm*
+profile lvm-all-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  @{shells_path}				Cx,
+  @{bin}/mkdir				Cx,	
+  @{bin}/grep				Cx,
+  @{bin}/rmdir				Cx,	
+  /etc/{conf,init}.d/lvm*				r,
+
+  @{sys}/fs/cgroup/openrc/lvm*/tasks		w,
+  @{sys}/fs/cgroup/unified/lvm*/cgroup.procs	w,
+  @{sys}/fs/cgroup/unified/lvm*/cgroup.events	r,
+
+  profile @{shells_path} flags=(complain) {
+    include <abstractions/base>
+    include <abstractions/nameservice>
+    include <abstractions/openrc-shell>
+  }
+  
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{sys}/fs/cgroup/{openrc,unified}/lvm*/	w,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/lvm*/cgroup.procs	r,
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/lvm*/		w,   
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+
+  include if exists <local/lvm*-sh>
+}
+
+# vim:syntax=apparmor
