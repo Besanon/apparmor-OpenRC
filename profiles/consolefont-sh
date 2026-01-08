@@ -1,0 +1,75 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon  <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/consolefont
+profile consolefont-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  capability dac_override,
+
+  @{bin}/mkdir					Cx,	# sys-apps/coreutils
+  @{bin}/grep					Cx,	# sys-apps/grep
+  @{bin}/rmdir					Cx,	# sys-apps/coreutils
+  @{bin}/setfont				Px,	# sys-apps/kbd
+
+  /etc/{conf,init}.d/consolefont			r,
+
+  @{sys}/fs/cgroup/openrc/consolefont/tasks               w,
+  @{sys}/fs/cgroup/unified/consolefont/cgroup.procs       w,
+  @{sys}/fs/cgroup/unified/consolefont/cgroup.events      r,
+
+  profile mkdir @{bin}/mkdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/mkdir						mr,
+
+    @{lib}/rc/console/				w,
+
+    @{sys}/fs/cgroup/{openrc,unified}/consolefont/	w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+  
+  profile grep @{bin}/grep flags=(complain) {
+    include <abstractions/base>
+
+    @{bin}/grep						mr,
+
+    @{sys}/fs/cgroup/unified/consolefont/cgroup.procs	r,    
+
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+  }
+  
+  profile rmdir @{bin}/rmdir flags=(complain) {
+    include <abstractions/base>
+    
+    capability dac_override,
+
+    @{bin}/rmdir						mr,
+
+    @{sys}/fs/cgroup/unified/consolefont/		w,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,    
+  }
+
+  include if exists <local/consolefont-sh>
+}
+
+# vim:syntax=apparmor
