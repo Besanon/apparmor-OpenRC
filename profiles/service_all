@@ -1,0 +1,41 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2025 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = @{lib}/openrc/bin/service_*
+profile service_all @{exec_path} flags=(attach_disconnected, complain) {
+
+profile  @{lib}/openrc/bin/service_* flags=(attach_disconnected) {
+  include <abstractions/base>
+  
+  capability kill,
+  capability sys_ptrace,
+  
+  ptrace (trace),
+  
+  @{PROC}/						r,
+  @{PROC}/@{pids}/cmdline				r,
+  
+  @{exec_path} 				mr,
+
+  @{run}/openrc/   r,
+  @{run}/openrc/**/ r,
+  @{run}/openrc/daemons/{,**}				r,
+  @{run}/**.pid						r,
+
+  /dev/tty@{int}                                        rw,
+  /dev/console                                          rw,
+  /dev/pts/@{int}                                       rw,
+  
+  deny /apparmor/.null					rw,	
+  
+  include if exists <local/service_all>
+}
+
+# vim:syntax=apparmor
