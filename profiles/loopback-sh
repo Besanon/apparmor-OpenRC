@@ -1,0 +1,78 @@
+# apparmor.d - Full set of apparmor profiles
+# Copyright (C) 2016-2018 Mikhail Kurinnoi
+# Copyright (C) 2021-2024 Alexandre Pujol <alexandre@pujol.io>
+# Copyright (C) 2026 Besanon <m231009ts@mailfence.com>
+# SPDX-License-Identifier: GPL-2.0-only
+
+abi <abi/4.0>,
+
+include <tunables/global>
+
+@{exec_path} = /etc/init.d/loopback
+profile loopback-sh @{exec_path} flags=(attach_disconnected, complain) {
+  include <abstractions/base>
+  include <abstractions/nameservice-strict>
+  include <abstractions/openrc>
+  include <abstractions/openrc-scripts>
+
+  /bin/mkdir				Cx,	
+  /bin/grep				Cx,	
+  /bin/rmdir				Cx,	
+
+  /etc/{conf,init}.d/loopback				r,
+  /etc/iproute2/rt_scopes				r,
+ 
+  @{run}/NetworkManager/NetworkManager.pid r,
+  @{run}/openrc/exclusive/loopback rwk,
+  @{run}/openrc/started/loopback rw,
+  @{run}/openrc/stopping/loopback rw,
+  @{run}/openrc/scheduled/NetworkManager/ rw,
+  @{run}/openrc/daemons/loopback/001 r,
+  @{run}/openrc/daemons/NetworkManager/001 r,
+  @{run}/supervise-*.pid r,
+
+  /sys/fs/cgroup/openrc/loopback/tasks		w,
+  /sys/fs/cgroup/unified/loopback/cgroup.procs	w,
+  /sys/fs/cgroup/unified/loopback/cgroup.events	r,
+
+  profile mkdir /bin/mkdir flags=(complain) {
+    #include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/{openrc,unified}/loopback/	w,
+    
+    /bin/mkdir						mr,
+  }
+  
+  profile grep /bin/grep flags=(complain) {
+    #include <abstractions/base>
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/unified/loopback/cgroup.procs	r,
+    
+    /bin/grep						mr,
+  }
+  
+  profile rmdir /bin/rmdir flags=(complain) {
+    #include <abstractions/base>
+    
+    capability dac_override,
+    
+    /dev/tty@{int}					rw,
+    /dev/console					rw,
+    /dev/pts/@{int}					rw,
+    /sys/fs/cgroup/unified/loopback/		w,
+    
+    /bin/rmdir						mr,
+  }
+
+  include if exists <local/loopback-sh>
+}
+
+# vim:syntax=apparmor
